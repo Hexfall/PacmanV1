@@ -19,6 +19,12 @@ class Pellet(object):
             p = self.position + adjust
             pygame.draw.circle(screen, self.color, p.asInt(), self.radius)
 
+    def __str__(self):
+        return f"{self.position.x // TILEWIDTH} {self.position.y // TILEHEIGHT}"
+
+    def __repr__(self):
+        return str(self)
+
 
 class PowerPellet(Pellet):
     def __init__(self, row, column):

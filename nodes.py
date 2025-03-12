@@ -27,7 +27,12 @@ class Node(object):
                 line_end = self.neighbors[n].position.asTuple()
                 pygame.draw.line(screen, WHITE, line_start, line_end, 4)
                 pygame.draw.circle(screen, RED, self.position.asInt(), 12)
-
+    
+    def __str__(self):
+        return f"{self.position.x // TILEWIDTH} {self.position.y // TILEHEIGHT}"
+    
+    def __repr__(self):
+        return str(self)
 
 class NodeGroup(object):
     def __init__(self, level):
