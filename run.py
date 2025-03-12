@@ -1,7 +1,9 @@
 import pygame
 from pygame.locals import *
 from constants import *
-from controller import Controller as Pacman
+from pacman import Pacman
+# Add this import
+from controller import Controller
 from nodes import NodeGroup
 from pellets import PelletGroup
 from ghosts import GhostGroup
@@ -56,6 +58,10 @@ class GameController(object):
         self.pacman = Pacman(self.nodes.getNodeFromTiles(*self.mazedata.obj.pacmanStart))
         self.pellets = PelletGroup(self.mazedata.obj.name+".txt")
         self.ghosts = GhostGroup(self.nodes.getStartTempNode(), self.pacman)
+        # Add these three lines
+        self.pacman = Controller(self.nodes.getNodeFromTiles(*self.mazedata.obj.pacmanStart))
+        self.pacman.set_ghosts(self.ghosts)
+        self.pacman.set_pellets(self.pellets)
 
         self.ghosts.pinky.setStartNode(self.nodes.getNodeFromTiles(*self.mazedata.obj.addOffset(2, 3)))
         self.ghosts.inky.setStartNode(self.nodes.getNodeFromTiles(*self.mazedata.obj.addOffset(0, 3)))

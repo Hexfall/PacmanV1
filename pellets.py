@@ -38,7 +38,7 @@ class PowerPellet(Pellet):
 
 class PelletGroup(object):
     def __init__(self, pelletfile):
-        self.pelletList = []
+        self.pelletList: list[Pellet] = []
         self.powerpellets = []
         self.createPelletList(pelletfile)
         self.numEaten = 0

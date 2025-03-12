@@ -1,11 +1,13 @@
 import pygame
 from pygame.locals import *
+
+from nodes import Node
 from vector import Vector2
 from constants import *
 from random import randint
 
 class Entity(object):
-    def __init__(self, node):
+    def __init__(self, node: Node):
         self.name = None
         self.directions = {UP:Vector2(0, -1),DOWN:Vector2(0, 1), 
                           LEFT:Vector2(-1, 0), RIGHT:Vector2(1, 0), STOP:Vector2()}
@@ -14,10 +16,13 @@ class Entity(object):
         self.radius = 10
         self.collideRadius = 5
         self.color = WHITE
-        self.visible = True
+        self.visible: bool = True
         self.disablePortal = False
         self.goal = None
         self.directionMethod = self.randomDirection
+        self.node: Node = node
+        self.target: Node = node
+        self.startNode: Node = node
         self.setStartNode(node)
         self.image = None
 
