@@ -1,7 +1,7 @@
 import pygame
 from pygame.locals import *
 from constants import *
-from pacman import Pacman
+from controller import Controller as Pacman
 from nodes import NodeGroup
 from pellets import PelletGroup
 from ghosts import GhostGroup
