@@ -9,7 +9,7 @@ import numpy as np
 MAX_DEPTH = 12
 GREED_FACTOR = 4.5
 MAX_FEAR = 7 # Don't take ghost further than this many nodes into account
-FEAR_FACTOR = 4.5
+FEAR_FACTOR = 7.5
 
 class Controller(Pacman):
     def __init__(self, node: Node) -> None:
