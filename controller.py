@@ -7,9 +7,9 @@ from math import inf
 import numpy as np
 
 MAX_DEPTH = 14
-GREED_FACTOR = 20
+GREED_FACTOR = 25
 MAX_FEAR = 8 # Don't take ghost further than this many nodes into account
-FEAR_FACTOR = 1.25
+FEAR_FACTOR = 2.5
 
 class Controller(Pacman):
     def __init__(self, node: Node) -> None:
@@ -75,7 +75,7 @@ class Controller(Pacman):
                     if depth >= MAX_FEAR:
                         return 0
                     else:
-                        return ((MAX_FEAR - depth+2)/3)**5 * FEAR_FACTOR * max((dir_dot + 1)/2, 0)
+                        return ((MAX_FEAR - depth+4)/3)**5 * FEAR_FACTOR * max((dir_dot + 1)/2, 0)
                 pellets = -self.pellets_between(prev, cur) 
                 s = pellets / (depth+1)**3 * GREED_FACTOR
                 p = False
