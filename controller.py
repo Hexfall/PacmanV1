@@ -7,8 +7,8 @@ from math import inf
 import numpy as np
 
 MAX_DEPTH = 12
-GREED_FACTOR = 4.5
-MAX_FEAR = 7 # Don't take ghost further than this many nodes into account
+GREED_FACTOR = 2.5
+MAX_FEAR = 5 # Don't take ghost further than this many nodes into account
 FEAR_FACTOR = 7.5
 
 class Controller(Pacman):
@@ -62,15 +62,18 @@ class Controller(Pacman):
                     to_pacman = self.position - ghost.position
                     to_pacman = np.array([to_pacman.x, to_pacman.y])
                     to_pacman = to_pacman / np.linalg.norm(to_pacman)
-                    dir_dot = np.dot(to_pacman, ghost_dir)
+                    to_node = prev.position - ghost.position
+                    to_node = np.array([to_node.x, to_node.y])
+                    to_node = to_node / np.linalg.norm(to_node)
+                    dir_dot = np.dot(to_node, ghost_dir)
                     #if dir_dot > 0:
                     #    return 0
-                    if depth == 0 and dir_dot < .8:
+                    if depth == 0 and dir_dot > .8:
                         return inf
                     if depth >= MAX_FEAR:
                         return 0
                     else:
-                        return ((MAX_FEAR - depth)/3)**5 * FEAR_FACTOR * max((dir_dot + 1)/2, 0)
+                        return ((MAX_FEAR - depth+2)/3)**5 * FEAR_FACTOR * max((dir_dot + 1)/2, 0)
                 s = -self.pellets_between(prev, cur) / ((depth + 1)**3) * GREED_FACTOR
                 p = False
                 if self.power_pellet_between(prev, cur) and depth < 4:
@@ -128,12 +131,12 @@ class Controller(Pacman):
 
         if miny == maxy:
             for x in range(minx, maxx+1):
-                if self.pellet_map[miny][x]:
+                if self.power_pellet_map[miny][x]:
                     return True
 
         elif minx == maxx:
             for y in range(miny, maxy+1):
-                if self.pellet_map[y][minx]:
+                if self.power_pellet_map[y][minx]:
                     return True
 
         return False
