@@ -1,13 +1,14 @@
-from ghosts import GhostGroup
+from ghosts import GhostGroup, Ghost
 from nodes import Node
 from pacman import Pacman
 from constants import *
 from pellets import PelletGroup, Pellet
 from math import inf
+import numpy as np
 
 MAX_DEPTH = 12
-GREED_FACTOR = 7.5
-MAX_FEAR = 9 # Don't take ghost further than this many nodes into account
+GREED_FACTOR = 4.5
+MAX_FEAR = 7 # Don't take ghost further than this many nodes into account
 FEAR_FACTOR = 4.5
 
 class Controller(Pacman):
@@ -54,13 +55,22 @@ class Controller(Pacman):
                 seen.add(prev)
                 if depth == MAX_DEPTH:
                     return 0
-                if not power and self.has_ghost(prev, cur):
-                    if depth == 0:
+                ghost = self.has_ghost(prev, cur)
+                if not power and ghost is not None:
+                    ghost_dir = self.directions[ghost.direction]
+                    ghost_dir = np.array([ghost_dir.x, ghost_dir.y])
+                    to_pacman = self.position - ghost.position
+                    to_pacman = np.array([to_pacman.x, to_pacman.y])
+                    to_pacman = to_pacman / np.linalg.norm(to_pacman)
+                    dir_dot = np.dot(to_pacman, ghost_dir)
+                    #if dir_dot > 0:
+                    #    return 0
+                    if depth == 0 and dir_dot < .8:
                         return inf
                     if depth >= MAX_FEAR:
                         return 0
                     else:
-                        return ((MAX_FEAR - depth)/3)**5 * FEAR_FACTOR
+                        return ((MAX_FEAR - depth)/3)**5 * FEAR_FACTOR * max((dir_dot + 1)/2, 0)
                 s = -self.pellets_between(prev, cur) / ((depth + 1)**3) * GREED_FACTOR
                 p = False
                 if self.power_pellet_between(prev, cur) and depth < 4:
@@ -128,21 +138,21 @@ class Controller(Pacman):
 
         return False
     
-    def has_ghost(self, n1: Node, n2: Node) -> bool:
+    def has_ghost(self, n1: Node, n2: Node) -> Ghost | None:
         if n1.position.x == n2.position.x:
             for g in self.ghosts:
-                if g.mode.current == FREIGHT:
+                if g.mode.current in [FREIGHT, SPAWN]:
                     continue
                 miny = int(min(n1.position.y, n2.position.y))
                 maxy = int(max(n1.position.y, n2.position.y))
                 if g.position.x == n1.position.x and miny <= g.position.y <= maxy:
-                    return True
+                    return g
         else:
             for g in self.ghosts:
-                if g.mode.current == FREIGHT:
+                if g.mode.current in [FREIGHT, SPAWN]:
                     continue
                 minx = int(min(n1.position.x, n2.position.x))
                 maxx = int(max(n1.position.x, n2.position.x))
                 if g.position.y == n1.position.y and minx <= g.position.x <= maxx:
-                    return True
-        return False
+                    return g
+        return None
