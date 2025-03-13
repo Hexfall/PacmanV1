@@ -5,11 +5,10 @@ from constants import *
 from pellets import PelletGroup, Pellet
 from math import inf
 
-DIRECTIONS = [LEFT, UP, RIGHT, DOWN]
 MAX_DEPTH = 12
-GREED_FACTOR = 1.5
-MAX_FEAR = 5 # Don't take ghost further than this many nodes into account
-FEAR_FACTOR = 3
+GREED_FACTOR = 7.5
+MAX_FEAR = 9 # Don't take ghost further than this many nodes into account
+FEAR_FACTOR = 4.5
 
 class Controller(Pacman):
     def __init__(self, node: Node) -> None:
@@ -56,23 +55,27 @@ class Controller(Pacman):
                 if depth == MAX_DEPTH:
                     return 0
                 if not power and self.has_ghost(prev, cur):
+                    if depth == 0:
+                        return inf
                     if depth >= MAX_FEAR:
                         return 0
                     else:
-                        return (MAX_FEAR - depth)**3 * FEAR_FACTOR
+                        return ((MAX_FEAR - depth)/3)**5 * FEAR_FACTOR
                 s = -self.pellets_between(prev, cur) / ((depth + 1)**3) * GREED_FACTOR
-                if self.power_pellet_between(prev, cur):
-                    power = True
+                p = False
+                if self.power_pellet_between(prev, cur) and depth < 4:
+                    p = True
                 for next in cur.neighbors.values():
                     if next is None or next in seen:
                         continue
-                    s += get_weight(next, cur, depth + 1, seen, power)
+                    s += get_weight(next, cur, depth + 1, seen, power or p)
                 return s 
             
             weight = get_weight(n, self.node)
             
             best = min(best, (weight, d))
             
+        print(f"Weight: {best[0]}")
         self.direction = best[1]
         self.target = self.getNewTarget(self.direction)
 
