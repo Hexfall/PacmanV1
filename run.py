@@ -56,12 +56,13 @@ class GameController(object):
         self.mazedata.obj.setPortalPairs(self.nodes)
         self.mazedata.obj.connectHomeNodes(self.nodes)
         self.pacman = Pacman(self.nodes.getNodeFromTiles(*self.mazedata.obj.pacmanStart))
-        # Add these three lines
+        # Add this lines
         self.pacman = Controller(self.nodes.getNodeFromTiles(*self.mazedata.obj.pacmanStart))
         
         self.pellets = PelletGroup(self.mazedata.obj.name+".txt")
         self.ghosts = GhostGroup(self.nodes.getStartTempNode(), self.pacman)
         
+        # Add these two lines
         self.pacman.set_ghosts(self.ghosts)
         self.pacman.set_pellets(self.pellets)
 
