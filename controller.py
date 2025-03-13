@@ -48,52 +48,53 @@ class Controller(Pacman):
                 continue
             if not PACMAN in self.node.access[d]:
                 continue
-            def get_weight(cur: Node, prev: Node, depth: int = 0, seen: set[Node] | None = None, power: bool = False) -> float:
-                if seen is None:
-                    seen = set()
-                seen = seen.copy()
-                seen.add(prev)
-                if depth == MAX_DEPTH:
-                    return 0
-                ghosts = self.has_ghost(prev, cur)
-                if not power and len(ghosts) != 0:
-                    dir_dot = -1
-                    for ghost in ghosts:
-                        ghost_dir = self.directions[ghost.direction]
-                        ghost_dir = np.array([ghost_dir.x, ghost_dir.y])
-                        to_pacman = self.position - ghost.position
-                        to_pacman = np.array([to_pacman.x, to_pacman.y])
-                        to_pacman = to_pacman / np.linalg.norm(to_pacman)
-                        to_node = prev.position - ghost.position
-                        to_node = np.array([to_node.x, to_node.y])
-                        to_node = to_node / np.linalg.norm(to_node)
-                        dir_dot = max(np.dot(to_node, ghost_dir), dir_dot)
-                    #if dir_dot > 0:
-                    #    return 0
-                    if depth == 0 and dir_dot > .8:
-                        return inf
-                    if depth >= MAX_FEAR:
-                        return 0
-                    else: 
-                        return ((MAX_FEAR - depth+4)/3)**5 * FEAR_FACTOR * max((dir_dot + 1)/2, 0)
-                pellets = -self.pellets_between(prev, cur) 
-                s = pellets / (depth+1)**3 * GREED_FACTOR
-                p = False
-                if self.power_pellet_between(prev, cur) and depth < 4:
-                    p = True
-                for next in cur.neighbors.values():
-                    if next is None or next in seen:
-                        continue
-                    s += get_weight(next, cur, depth + 1, seen, power or p)
-                return s / cur.position.magnitude()
             
-            weight = get_weight(n, self.node)
+            weight = self.get_weight(n, self.node)
             
             best = min(best, (weight, d))
             
         print(f"Weight: {best[0]}")
         self.direction = best[1]
         self.target = self.getNewTarget(self.direction)
+
+    def get_weight(self, cur: Node, prev: Node, depth: int = 0, seen: set[Node] | None = None, power: bool = False) -> float:
+        if seen is None:
+            seen = set()
+        seen = seen.copy()
+        seen.add(prev)
+        if depth == MAX_DEPTH:
+            return 0
+        ghosts = self.has_ghost(prev, cur)
+        if not power and len(ghosts) != 0:
+            dir_dot = -1
+            for ghost in ghosts:
+                ghost_dir = self.directions[ghost.direction]
+                ghost_dir = np.array([ghost_dir.x, ghost_dir.y])
+                to_pacman = self.position - ghost.position
+                to_pacman = np.array([to_pacman.x, to_pacman.y])
+                to_pacman = to_pacman / np.linalg.norm(to_pacman)
+                to_node = prev.position - ghost.position
+                to_node = np.array([to_node.x, to_node.y])
+                to_node = to_node / np.linalg.norm(to_node)
+                dir_dot = max(np.dot(to_node, ghost_dir), dir_dot)
+            #if dir_dot > 0:
+            #    return 0
+            if depth == 0 and dir_dot > .8:
+                return inf
+            if depth >= MAX_FEAR:
+                return 0
+            else:
+                return ((MAX_FEAR - depth+4)/3)**5 * FEAR_FACTOR * max((dir_dot + 1)/2, 0)
+        pellets = -self.pellets_between(prev, cur)
+        s = pellets / (depth+1)**3 * GREED_FACTOR
+        p = False
+        if self.power_pellet_between(prev, cur) and depth < 4:
+            p = True
+        for next in cur.neighbors.values():
+            if next is None or next in seen:
+                continue
+            s += self.get_weight(next, cur, depth + 1, seen, power or p)
+        return s / cur.position.magnitude()
 
     def eatPellets(self, pellet_list: list[Pellet]) -> None | Pellet:
         for pellet in pellet_list:
@@ -148,16 +149,22 @@ class Controller(Pacman):
         l = []
         if n1.position.x == n2.position.x:
             for g in self.ghosts:
-                if g.mode.current in [FREIGHT, SPAWN]:
+                if g.mode.current == SPAWN:
                     continue
+                if g.mode.current == FREIGHT:
+                    if g.mode.timer / g.mode.time < .85:
+                        continue
                 miny = int(min(n1.position.y, n2.position.y))
                 maxy = int(max(n1.position.y, n2.position.y))
                 if g.position.x == n1.position.x and miny <= g.position.y <= maxy:
                     l.append(g)
         else:
             for g in self.ghosts:
-                if g.mode.current in [FREIGHT, SPAWN]:
+                if g.mode.current == SPAWN:
                     continue
+                if g.mode.current == FREIGHT:
+                    if g.mode.timer / g.mode.time < .85:
+                        continue
                 minx = int(min(n1.position.x, n2.position.x))
                 maxx = int(max(n1.position.x, n2.position.x))
                 if g.position.y == n1.position.y and minx <= g.position.x <= maxx:
