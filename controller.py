@@ -8,6 +8,7 @@ import numpy as np
 
 MAX_DEPTH = 14
 GREED_FACTOR = 25
+GHOST_VALUE = -20
 MAX_FEAR = 8 # Don't take ghost further than this many nodes into account
 FEAR_FACTOR = 2.5
 
@@ -18,11 +19,36 @@ class Controller(Pacman):
         self.pellets: PelletGroup = None
         self.pellet_map: list[list[bool]] = [[False for _ in range(NCOLS)] for _ in range(NROWS)]
         self.power_pellet_map: list[list[bool]] = [[False for _ in range(NCOLS)] for _ in range(NROWS)]
+        self.col: int = node.position.x // TILEWIDTH
+        self.row: int = node.position.y // TILEHEIGHT
+        self.flipped = False
+        self.ghost_multiplier: int = 1
+        self.ghosts_killed: set[Ghost] = set()
+    
+    # Updated col and row values, returns true if values changed, false otherwise.
+    def update_coords(self) -> bool:
+        c = self.position.x // TILEWIDTH
+        r = self.position.y // TILEHEIGHT
+        if c != self.col or r != self.row:
+            self.col = c
+            self.row = r
+            return True
+        return False
     
     def update(self, dt) -> None:
         self.sprites.update(dt)
         self.position += self.directions[self.direction]*self.speed*dt
+        
+        # Update Ghost multiplier
+        for g in self.ghosts:
+            if g in self.ghosts_killed:
+                continue
+            if g.mode.current == SPAWN:
+                self.ghosts_killed.add(g)
+                self.ghost_multiplier *= 4
+        
         if self.overshotTarget():
+            self.flipped = False
             if self.target.neighbors[PORTAL] is not None:
                 self.node = self.target.neighbors[PORTAL]
                 self.target = self.node.neighbors[self.direction]
@@ -30,6 +56,8 @@ class Controller(Pacman):
                 self.node = self.target
                 self.next_move()
             self.setPosition()
+        elif self.update_coords():
+            self.eval_flip()
     
     def set_ghosts(self, ghosts: GhostGroup) -> None:
         self.ghosts = ghosts
@@ -57,7 +85,8 @@ class Controller(Pacman):
         self.direction = best[1]
         self.target = self.getNewTarget(self.direction)
 
-    def get_weight(self, cur: Node, prev: Node, depth: int = 0, seen: set[Node] | None = None, power: bool = False) -> float:
+    def get_weight(self, cur: Node, prev: Node, depth: int = 0, seen: set[Node] | None = None, power: bool = False, between: bool = False) -> float:
+        s = 0
         if seen is None:
             seen = set()
         seen = seen.copy()
@@ -67,26 +96,35 @@ class Controller(Pacman):
         ghosts = self.has_ghost(prev, cur)
         if not power and len(ghosts) != 0:
             dir_dot = -1
+            danger = False
             for ghost in ghosts:
+                if ghost.mode.current == SPAWN:
+                    continue
+                if ghost.mode.current == FREIGHT:
+                    if ghost.mode.timer / ghost.mode.time < .85:
+                        s += GHOST_VALUE * GREED_FACTOR * self.ghost_multiplier
+                        continue
+                danger = True
                 ghost_dir = self.directions[ghost.direction]
                 ghost_dir = np.array([ghost_dir.x, ghost_dir.y])
-                to_pacman = self.position - ghost.position
-                to_pacman = np.array([to_pacman.x, to_pacman.y])
-                to_pacman = to_pacman / np.linalg.norm(to_pacman)
                 to_node = prev.position - ghost.position
                 to_node = np.array([to_node.x, to_node.y])
                 to_node = to_node / np.linalg.norm(to_node)
                 dir_dot = max(np.dot(to_node, ghost_dir), dir_dot)
             #if dir_dot > 0:
             #    return 0
-            if depth == 0 and dir_dot > .8:
-                return inf
-            if depth >= MAX_FEAR:
-                return 0
-            else:
-                return ((MAX_FEAR - depth+4)/3)**5 * FEAR_FACTOR * max((dir_dot + 1)/2, 0)
-        pellets = -self.pellets_between(prev, cur)
-        s = pellets / (depth+1)**3 * GREED_FACTOR
+            if danger:
+                if depth == 0 and dir_dot > .8:
+                    return inf
+                if depth >= MAX_FEAR:
+                    return 0
+                else:
+                    return ((MAX_FEAR - depth+4)/3)**5 * FEAR_FACTOR * max((dir_dot + 1)/2, 0)
+        if between:
+            pellets = 0
+        else:
+            pellets = -self.pellets_between(prev, cur)
+        s += pellets * GREED_FACTOR
         p = False
         if self.power_pellet_between(prev, cur) and depth < 4:
             p = True
@@ -105,7 +143,13 @@ class Controller(Pacman):
 
     def remove_pellet(self, pellet: Pellet) -> None:
         self.pellet_map[pellet.position.y//TILEHEIGHT][pellet.position.x//TILEWIDTH] = False
-        self.power_pellet_map[pellet.position.y//TILEHEIGHT][pellet.position.x//TILEWIDTH] = False
+        if self.power_pellet_map[pellet.position.y//TILEHEIGHT][pellet.position.x//TILEWIDTH]:
+            self.ghost_multiplier = 1
+            self.ghosts_killed = set()
+            for g in self.ghosts:
+                if g.mode.current == SPAWN:
+                    self.ghosts_killed.add(g)
+            self.power_pellet_map[pellet.position.y//TILEHEIGHT][pellet.position.x//TILEWIDTH] = False
     
     # This may double count pellets on nodes. I don't care enough to account for it.
     def pellets_between(self, n1: Node, n2: Node) -> int:
@@ -149,24 +193,20 @@ class Controller(Pacman):
         l = []
         if n1.position.x == n2.position.x:
             for g in self.ghosts:
-                if g.mode.current == SPAWN:
-                    continue
-                if g.mode.current == FREIGHT:
-                    if g.mode.timer / g.mode.time < .85:
-                        continue
                 miny = int(min(n1.position.y, n2.position.y))
                 maxy = int(max(n1.position.y, n2.position.y))
                 if g.position.x == n1.position.x and miny <= g.position.y <= maxy:
                     l.append(g)
         else:
             for g in self.ghosts:
-                if g.mode.current == SPAWN:
-                    continue
-                if g.mode.current == FREIGHT:
-                    if g.mode.timer / g.mode.time < .85:
-                        continue
                 minx = int(min(n1.position.x, n2.position.x))
                 maxx = int(max(n1.position.x, n2.position.x))
                 if g.position.y == n1.position.y and minx <= g.position.x <= maxx:
                     l.append(g)
         return l
+
+    def eval_flip(self):
+        if self.get_weight(self.target, self.node, between=self.flipped) > self.get_weight(self.node, self.target, between=not self.flipped):
+            self.direction = -self.direction
+            self.target, self.node = self.node, self.target
+            self.flipped = not self.flipped
