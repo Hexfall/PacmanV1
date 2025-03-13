@@ -74,7 +74,7 @@ class Controller(Pacman):
                         return inf
                     if depth >= MAX_FEAR:
                         return 0
-                    else:
+                    else: 
                         return ((MAX_FEAR - depth+4)/3)**5 * FEAR_FACTOR * max((dir_dot + 1)/2, 0)
                 pellets = -self.pellets_between(prev, cur) 
                 s = pellets / (depth+1)**3 * GREED_FACTOR
