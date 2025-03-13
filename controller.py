@@ -9,7 +9,7 @@ import numpy as np
 from vector import Vector2
 
 MAX_DEPTH = 14
-GREED_FACTOR = 25
+GREED_FACTOR = 80
 GHOST_VALUE = -20
 MAX_FEAR = 8 # Don't take ghost further than this many nodes into account
 FEAR_FACTOR = 1.5
@@ -103,7 +103,8 @@ class Controller(Pacman):
             danger = 0
             for ghost in ghosts:
                 if ghost.mode.current == SPAWN:
-                    continue
+                    if (ghost.position - ghost.goal).magnitudeSquared() > 9:
+                        continue
                 if ghost.mode.current == FREIGHT:
                     if ghost.mode.timer / ghost.mode.time < .85:
                         s += GHOST_VALUE * GREED_FACTOR * self.ghost_multiplier
