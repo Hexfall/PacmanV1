@@ -7,7 +7,8 @@ from math import inf
 
 DIRECTIONS = [LEFT, UP, RIGHT, DOWN]
 MAX_DEPTH = 10
-MAX_FEAR = 4 # Don't take ghost further than this many nodes into account
+GREED_FACTOR = 1.01 
+MAX_FEAR = 5 # Don't take ghost further than this many nodes into account
 FEAR_FACTOR = .5
 
 class Controller(Pacman):
@@ -54,12 +55,12 @@ class Controller(Pacman):
                         return 0
                     else:
                         return (MAX_FEAR - depth)**2 * FEAR_FACTOR
-                s = -self.pellets_between(prev, cur) / (depth + 1)**2
+                s = -self.pellets_between(prev, cur) / ((depth + 1)**2)
                 for next in cur.neighbors.values():
                     if next is None or next in seen:
                         continue
                     s += get_weight(next, cur, depth + 1, seen)
-                return s
+                return s * GREED_FACTOR
             
             weight = get_weight(n, self.node)
             
@@ -101,7 +102,7 @@ class Controller(Pacman):
     def has_ghost(self, n1: Node, n2: Node) -> bool:
         if n1.position.x == n2.position.x:
             for g in self.ghosts:
-                if g.mode == FREIGHT:
+                if g.mode.current == FREIGHT:
                     continue
                 miny = int(min(n1.position.y, n2.position.y))
                 maxy = int(max(n1.position.y, n2.position.y))
@@ -109,7 +110,7 @@ class Controller(Pacman):
                     return True
         else:
             for g in self.ghosts:
-                if g.mode == FREIGHT:
+                if g.mode.current == FREIGHT:
                     continue
                 minx = int(min(n1.position.x, n2.position.x))
                 maxx = int(max(n1.position.x, n2.position.x))
