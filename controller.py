@@ -9,10 +9,10 @@ import numpy as np
 from vector import Vector2
 
 MAX_DEPTH = 14
-GREED_FACTOR = 80
+GREED_FACTOR = 420
 GHOST_VALUE = -20
-MAX_FEAR = 8 # Don't take ghost further than this many nodes into account
-FEAR_FACTOR = 1.5
+MAX_FEAR = 7 # Don't take ghost further than this many nodes into account
+FEAR_FACTOR = 7.5
 BOARD_RADIUS = Vector2(NROWS * TILEHEIGHT, NCOLS * TILEWIDTH).magnitude()
 
 class Controller(Pacman):
